@@ -170,7 +170,10 @@ extension HostAgentXPCSnapshotClient {
             lock.unlock()
             return false
         }
-        state = .ready(peerIdentity, lastEventID: response.lastEventID)
+        state = .ready(
+            peerIdentity,
+            lastEventID: refreshTrigger.cursorAfterResynchronization(
+                snapshotEventID: response.lastEventID))
         snapshotRequest = nil
         self.refreshTrigger = nil
         self.eventCompletion = nil

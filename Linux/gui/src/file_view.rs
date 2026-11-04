@@ -33,6 +33,8 @@ pub struct View {
     pub(crate) exited: Cell<bool>,
     closing: Cell<bool>,
     pub(crate) events: RefCell<Vec<serde_json::Value>>,
+    completions: RefCell<crate::file_completion::Tracker>,
+    notifications: Rc<crate::file_notifications::Presenter>,
 }
 pub fn close_all() -> bool {
     OPEN.with(|slot| {
@@ -157,6 +159,8 @@ pub fn open(
         exited: Cell::new(false),
         closing: Cell::new(false),
         events: RefCell::new(Vec::new()),
+        completions: RefCell::new(crate::file_completion::Tracker::default()),
+        notifications: Rc::new(crate::file_notifications::Presenter::default()),
     });
     OPEN.with(|slot| *slot.borrow_mut() = Some(Rc::downgrade(&view)));
     let keep = view.clone();
@@ -543,6 +547,9 @@ impl View {
                         self.rows.append(&row);
                     }
                 }
+                EventKind::TransferStarted { job, upload, local_directory } => {
+                    self.completions.borrow_mut().start(job, !upload, local_directory.map(Into::into));
+                }
                 EventKind::Transfer {
                     job,
                     name,
@@ -551,6 +558,12 @@ impl View {
                     status,
                     needs_confirmation,
                 } => {
+                    if let Some(completion) = self.completions.borrow_mut().update(job, &status) {
+                        self.status.set_text(completion.title());
+                        if let Some(window) = self.window.upgrade() {
+                            self.notifications.show(completion, window.upcast_ref());
+                        }
+                    }
                     let mut jobs = self.jobs.borrow_mut();
                     if let Some(index) = jobs.iter().position(|j| j.0 == job) {
                         jobs.remove(index);

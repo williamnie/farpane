@@ -129,12 +129,14 @@ package final class HostAgentBackgroundActivationOwner: @unchecked Sendable {
     private var activeEpoch: UInt64?
     private var activeRuntime: HostAgentBackgroundActivationRuntime?
 
-    package static func makeProduct(observer: @escaping Observer = { _ in })
-        -> HostAgentBackgroundActivationOwner
-    {
+    package static func makeProduct(
+        onFileCompletion: @escaping HostAgentBackgroundProjectionAuthority.FileCompletionObserver =
+            { _ in }, observer: @escaping Observer = { _ in }
+    ) -> HostAgentBackgroundActivationOwner {
         HostAgentBackgroundActivationOwner(
             makeRuntime: { healthObserver in
-                HostAgentBackgroundRuntimeComposition.makeProduct(observer: healthObserver)
+                HostAgentBackgroundRuntimeComposition.makeProduct(
+                    observer: healthObserver, onFileCompletion: onFileCompletion)
             }, observer: observer)
     }
 

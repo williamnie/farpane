@@ -134,6 +134,7 @@ struct Job {
 }
 struct Host<'a> {
     connection: i32,
+    receive_directory: String,
     root: Arc<Root>,
     owner: Owner,
     generation: u64,
@@ -305,6 +306,20 @@ impl Host<'_> {
             files::update(job.token, job.done, "receiving", "", false);
             return Ok(());
         }
+        let mut directory = if r.farpane_tree {
+            Path::new(&base).parent().unwrap_or(Path::new(""))
+        } else {
+            Path::new(&entries[0].name).parent().unwrap_or(Path::new(""))
+        };
+        for entry in &entries {
+            while !Path::new(&entry.name).starts_with(directory) {
+                directory = directory.parent().unwrap_or(Path::new(""));
+            }
+        }
+        let local_directory = Path::new(&self.receive_directory)
+            .join(directory)
+            .to_string_lossy()
+            .into_owned();
         let registration = files::register(
             FileTask {
                 connection: self.connection,
@@ -316,6 +331,7 @@ impl Host<'_> {
                     entries[0].name.clone()
                 },
                 upload: true,
+                local_directory: Some(local_directory),
                 total: if r.farpane_more { 0 } else { total },
                 overwrite_required: overwrite,
                 ..Default::default()
@@ -932,6 +948,7 @@ pub fn run(
     let owner = Owner::new(root.clone(), generation)?;
     let mut host = Host {
         connection,
+        receive_directory: path.to_owned(),
         root,
         owner,
         generation,

@@ -61,6 +61,7 @@ package struct HostAgentXPCWireCommandResult: Equatable, Sendable {
 package enum HostAgentXPCWireEventPayload: Equatable, Sendable {
     case snapshotChanged
     case commandResult(HostAgentXPCWireCommandResult)
+    case fileTransferCompleted(HostFileTransferCompletion)
 }
 
 package struct HostAgentXPCWireEvent: Equatable, Sendable {
@@ -101,6 +102,9 @@ package struct HostAgentXPCWireEvent: Equatable, Sendable {
             payload = .snapshotChanged
         case "commandResult":
             payload = .commandResult(try HostAgentXPCWireCommandResult(document: payloadDocument))
+        case "fileTransferCompleted":
+            payload = .fileTransferCompleted(
+                try HostFileTransferCompletion(document: payloadDocument))
         default: throw HostAgentXPCWireEventDocumentError.invalidDocument
         }
         guard
@@ -121,6 +125,9 @@ package struct HostAgentXPCWireEvent: Equatable, Sendable {
             case .commandResult(let result):
                 eventType = "commandResult"
                 payloadDocument = result.document
+            case .fileTransferCompleted(let completion):
+                eventType = "fileTransferCompleted"
+                payloadDocument = completion.document
             }
             return [
                 "eventId": eventID, "eventType": eventType,
@@ -134,7 +141,8 @@ package struct HostAgentXPCWireEvent: Equatable, Sendable {
 }
 
 /// Strict Data-only event cursor contract. It deliberately has no Objective-C
-/// selector, listener, connection, callback proxy, URL, or raw Core envelope.
+/// selector, listener, connection, callback proxy, or raw Core envelope.
+/// File completion carries only a validated local directory for an explicit UI action.
 package enum HostAgentXPCWireEventContract: XPCDocumentContract {
     package typealias Failure = HostAgentXPCWireEventDocumentError
     package static let currentSchemaVersion: UInt64 = 1
@@ -185,6 +193,15 @@ package enum HostAgentXPCWireEventContract: XPCDocumentContract {
         guard event.hostInstanceId == expectedHostInstanceID,
             let envelope = try? StrictCoreEventEnvelope(event: event)
         else { return .requiresSnapshot }
+        if envelope.eventType == "fileTransferCompleted" {
+            guard let completion = try? HostFileTransferCompletion(document: envelope.payload)
+            else { return .requiresSnapshot }
+            return .event(
+                try HostAgentXPCWireEvent(
+                    eventID: record.sequence,
+                    sentAtUnixMilliseconds: envelope.sentAtUnixMilliseconds,
+                    payload: .fileTransferCompleted(completion)))
+        }
         if stateInvalidatingEventTypes.contains(envelope.eventType) {
             return .event(
                 try HostAgentXPCWireEvent(

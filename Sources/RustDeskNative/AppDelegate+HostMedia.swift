@@ -12,6 +12,11 @@ import ViewerInput
 
 extension AppDelegate {
     func handleHostCoreEvent(_ event: HostCoreEvent) {
+        if event.hostInstanceId == hostSnapshot?.hostInstanceId,
+            let completion = event.fileTransferCompletion
+        {
+            presentHostFileTransferCompletion(completion)
+        }
         if let control = event.mediaControl { handleHostMediaControl(control) }
         if let diagnostic = event.mediaDiagnostic { handleHostMediaDiagnostic(diagnostic) }
         if let queueDiagnostic = event.mediaQueueDiagnostic {

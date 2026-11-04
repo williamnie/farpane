@@ -1,7 +1,7 @@
 import AppKit
 
-/// Owns exactly one explicit destination selection sheet. FarPane does not
-/// retain the selected path after handing the URL to the descriptor owner.
+/// Owns exactly one explicit destination selection sheet. The UI retains the
+/// chosen URL only for the completion action; file I/O uses the descriptor owner.
 final class ViewerFileTransferDestinationPickerController {
     private var panel: NSOpenPanel?
 

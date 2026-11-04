@@ -428,12 +428,27 @@ final class HostAgentXPCSnapshotClientTests: XCTestCase {
         let refreshRequest = try HostAgentXPCWireSnapshotRequest.decode(
             XCTUnwrap(transport.lastSnapshotRequest))
         let refreshed = try HostAgentXPCWireSnapshotResponse.decode(
-            snapshotResponse(for: refreshRequest, hostID: hostID, bootID: bootID, eventSequence: 1))
+            snapshotResponse(for: refreshRequest, hostID: hostID, bootID: bootID, eventSequence: 2))
         transport.replyToSnapshot(try refreshed.encoded())
 
         XCTAssertEqual(
             results.values, [.resynchronized(snapshot: refreshed, triggeringResponse: changed)])
         XCTAssertEqual(client.stateSnapshot(), .ready(try peerIdentity(), lastEventID: 1))
+        client.fetchEvents { results.append($0) }
+        let next = try HostAgentXPCWireEventCursorRequest.decode(
+            XCTUnwrap(transport.lastEventRequest))
+        XCTAssertEqual(next.afterEventID, 1, "快照刷新期间的事件仍须读取")
+        let completed = try eventResponse(
+            for: next,
+            events: [
+                try event(
+                    id: 2, type: "fileTransferCompleted",
+                    payload: [
+                        "receiving": true, "directory": "/tmp/received", "hasSkippedFiles": false,
+                    ])
+            ])
+        transport.replyToEvents(try completed.encoded())
+        XCTAssertEqual(results.values.last, .events(completed))
     }
 
     func testInvalidEventResponseFailsClosedAndLateReplyCannotRevive() throws {

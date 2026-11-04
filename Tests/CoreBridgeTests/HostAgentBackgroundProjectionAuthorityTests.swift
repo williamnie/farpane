@@ -7,6 +7,48 @@ final class HostAgentBackgroundProjectionAuthorityTests: XCTestCase {
     private let bootA = "6973cef9-a610-4183-ac81-287fd5f298b7"
     private let bootB = "151db9a9-7dd3-4fea-93af-1b6c10840676"
 
+    func testCompletionProducedDuringSnapshotRefreshIsStillDelivered() throws {
+        let received = FileCompletionRecorder()
+        let authority = HostAgentBackgroundProjectionAuthority(onFileCompletion: {
+            received.append($0)
+        })
+        let binding = authority.beginSession()
+        try publishInitial(on: binding.sink, lastEventID: 1)
+        let changed = try snapshotChangedBatch(
+            hostID: "host-a", bootID: bootA, afterEventID: 1, eventID: 2)
+        let refreshed = try snapshotResponse(
+            hostID: "host-a", bootID: bootA, lastEventID: 3, localID: "1000000000",
+            registrationStatus: "ready", observedAt: 20)
+        binding.sink.publishResynchronizedSnapshot(refreshed, triggeringResponse: changed)
+        let completion = try batchResponse(
+            hostID: "host-a", bootID: bootA, afterEventID: 2, eventID: 3,
+            eventType: "fileTransferCompleted",
+            payload: ["receiving": true, "directory": "/tmp/received", "hasSkippedFiles": false])
+        binding.sink.publishEvents(completion)
+        XCTAssertEqual(received.count, 1)
+        XCTAssertEqual(authority.snapshot().snapshotStatus, .available)
+    }
+
+    func testFileCompletionIsDeliveredOnceAndOldSessionIsIgnored() throws {
+        let received = FileCompletionRecorder()
+        let authority = HostAgentBackgroundProjectionAuthority(onFileCompletion: {
+            received.append($0)
+        })
+        let binding = authority.beginSession()
+        try publishInitial(on: binding.sink, lastEventID: 1)
+        let event = try batchResponse(
+            hostID: "host-a", bootID: bootA, afterEventID: 1, eventID: 2,
+            eventType: "fileTransferCompleted",
+            payload: ["receiving": true, "directory": "/tmp/received", "hasSkippedFiles": false])
+        binding.sink.publishEvents(event)
+        XCTAssertEqual(received.count, 1)
+        binding.sink.publishEvents(event)
+        XCTAssertEqual(received.count, 1)
+        _ = authority.beginSession()
+        binding.sink.publishEvents(event)
+        XCTAssertEqual(received.count, 1)
+    }
+
     func testInitialSnapshotPublishesSanitizedAvailableProjection() throws {
         let observations = ProjectionAuthorityRecorder()
         let authority = HostAgentBackgroundProjectionAuthority(observer: { observations.append($0) }
@@ -357,6 +399,21 @@ private final class ProjectionAuthorityRecorder: @unchecked Sendable {
     func append(_ value: HostAgentBackgroundProjectionView) {
         lock.lock()
         storage.append(value)
+        lock.unlock()
+    }
+}
+
+private final class FileCompletionRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var values: [HostFileTransferCompletion] = []
+    var count: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return values.count
+    }
+    func append(_ value: HostFileTransferCompletion) {
+        lock.lock()
+        values.append(value)
         lock.unlock()
     }
 }

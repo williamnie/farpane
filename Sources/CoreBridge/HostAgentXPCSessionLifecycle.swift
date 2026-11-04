@@ -268,7 +268,10 @@ package final class HostAgentXPCSessionLifecycle: @unchecked Sendable {
                 lock.unlock()
                 return
             }
-            state = .polling(peerIdentity, lastEventID: snapshot.lastEventID)
+            state = .polling(
+                peerIdentity,
+                lastEventID: triggeringResponse.cursorAfterResynchronization(
+                    snapshotEventID: snapshot.lastEventID))
             lock.unlock()
             deliveryLock.lock()
             lock.lock()

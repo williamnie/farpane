@@ -10,6 +10,7 @@ pub(crate) struct NativeHostWriteJob {
     expected_total_size: u64,
     written_total_size: u64,
     skipped_total_size: u64,
+    skipped_files: bool,
     overwrite_detection: bool,
     awaiting_existing_target: Option<usize>,
 }
@@ -136,7 +137,9 @@ impl NativeHostWriteJob {
             return Err(NativeHostWriteJobError::UnexpectedFileNumber);
         }
         match decision {
-            NativeHostExistingTargetDecision::Skip => {}
+            NativeHostExistingTargetDecision::Skip => {
+                self.skipped_files = true;
+            }
             NativeHostExistingTargetDecision::Replace { offset } => {
                 let _ = offset;
                 return Err(NativeHostWriteJobError::ExistingTargetReplacementUnsupported);
@@ -237,6 +240,16 @@ impl NativeHostWriteJob {
         let result = self.finish_inner(file_num);
         if result.is_err() {
             self.abort_in_place();
+        } else {
+            let mut directory = self.entries.first()
+                .and_then(|entry| entry.destination_path.parent())
+                .unwrap_or(Path::new(""));
+            for entry in &self.entries {
+                while !entry.destination_path.starts_with(directory) {
+                    directory = directory.parent().unwrap_or(Path::new(""));
+                }
+            }
+            notify_native_host_file_completion(&self.owner, true, directory, self.skipped_files);
         }
         result
     }

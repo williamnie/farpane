@@ -94,6 +94,7 @@ package struct HostAgentBackgroundProjectionSessionBinding: Sendable {
 /// current component state. Only validated typed payloads are retained.
 package final class HostAgentBackgroundProjectionAuthority: @unchecked Sendable {
     package typealias Observer = @Sendable (HostAgentBackgroundProjectionView) -> Void
+    package typealias FileCompletionObserver = @Sendable (HostFileTransferCompletion) -> Void
 
     private struct ActiveSession {
         let epoch: UInt64
@@ -106,12 +107,19 @@ package final class HostAgentBackgroundProjectionAuthority: @unchecked Sendable 
     private let lock = NSLock()
     private let deliveryLock = NSRecursiveLock()
     private let observer: Observer
+    private let onFileCompletion: FileCompletionObserver
     private var view = HostAgentBackgroundProjectionView(generation: 0, phase: .idle)
     private var nextSessionEpoch: UInt64 = 0
     private var activeSession: ActiveSession?
     private var lastPeerIdentity: HostAgentXPCSnapshotClientPeerIdentity?
 
-    package init(observer: @escaping Observer = { _ in }) { self.observer = observer }
+    package init(
+        observer: @escaping Observer = { _ in },
+        onFileCompletion: @escaping FileCompletionObserver = { _ in }
+    ) {
+        self.observer = observer
+        self.onFileCompletion = onFileCompletion
+    }
 
     package func snapshot() -> HostAgentBackgroundProjectionView {
         lock.lock()
@@ -179,6 +187,7 @@ package final class HostAgentBackgroundProjectionAuthority: @unchecked Sendable 
     fileprivate func publishEvents(
         _ response: HostAgentXPCWireEventCursorResponse, sessionEpoch: UInt64
     ) {
+        var completions: [HostFileTransferCompletion] = []
         serializeMutation {
             guard var session = currentSession(sessionEpoch),
                 let peerIdentity = session.peerIdentity, let eventCursor = session.eventCursor,
@@ -188,14 +197,20 @@ package final class HostAgentBackgroundProjectionAuthority: @unchecked Sendable 
             else { return failCurrentSessionIfCurrent(sessionEpoch) }
             session.eventCursor = nextCursor
             activeSession = session
+            completions = response.events.compactMap { event in
+                if case .fileTransferCompleted(let completion) = event.payload { return completion }
+                return nil
+            }
             return nil
         }
+        completions.forEach(onFileCompletion)
     }
 
     fileprivate func publishResynchronizedSnapshot(
         _ response: HostAgentXPCWireSnapshotResponse,
         triggeringResponse: HostAgentXPCWireEventCursorResponse, sessionEpoch: UInt64
     ) {
+        var completions: [HostFileTransferCompletion] = []
         serializeMutation {
             guard var session = currentSession(sessionEpoch),
                 let peerIdentity = session.peerIdentity,
@@ -206,12 +221,20 @@ package final class HostAgentBackgroundProjectionAuthority: @unchecked Sendable 
                 response.lastEventID >= triggeringResponse.latestEventID,
                 response.snapshot.observedAt >= currentProjection.payload.observedAt
             else { return failCurrentSessionIfCurrent(sessionEpoch) }
-            session.eventCursor = response.lastEventID
+            completions = triggeringResponse.events.compactMap { event in
+                guard event.eventID > (session.eventCursor ?? 0),
+                    case .fileTransferCompleted(let completion) = event.payload
+                else { return nil }
+                return completion
+            }
+            session.eventCursor = triggeringResponse.cursorAfterResynchronization(
+                snapshotEventID: response.lastEventID)
             activeSession = session
             return replacePhase(
                 .available(
                     HostAgentBackgroundProjection(peerIdentity: peerIdentity, response: response)))
         }
+        completions.forEach(onFileCompletion)
     }
 
     fileprivate func sessionDidTerminate(
@@ -273,6 +296,7 @@ package final class HostAgentBackgroundProjectionAuthority: @unchecked Sendable 
         guard
             response.events.allSatisfy({ event in
                 if case .commandResult = event.payload { return true }
+                if case .fileTransferCompleted = event.payload { return true }
                 return false
             })
         else { return nil }

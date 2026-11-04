@@ -8,6 +8,32 @@ final class HostAgentXPCWireEventTests: XCTestCase {
     private let bootID = "6973cef9-a610-4183-ac81-287fd5f298b7"
     private let hostID = "host-a"
 
+    func testFileCompletionRoundTripsAndRejectsNonlocalOrMalformedDestinations() throws {
+        let payload: [String: Any] = [
+            "receiving": true, "directory": "/tmp/FarPane Receive", "hasSkippedFiles": false,
+        ]
+        let completion = try HostFileTransferCompletion(document: payload)
+        let record = HostAgentEventRecord(
+            sequence: 1, event: try event(id: 1, type: "fileTransferCompleted", payload: payload))
+        let response = try HostAgentXPCWireEventCursorResponse.make(
+            for: cursorRequest(), identity: identity(),
+            replay: .batch(records: [record], latestSequence: 1, hasMore: false),
+            sentAtUnixMilliseconds: 20)
+        XCTAssertEqual(response.events.first?.payload, .fileTransferCompleted(completion))
+        XCTAssertEqual(try HostAgentXPCWireEventCursorResponse.decode(response.encoded()), response)
+        for value in ["relative/folder", "https://example.com", "file:///tmp", "/tmp/\0bad"] {
+            var invalid = payload
+            invalid["directory"] = value
+            XCTAssertThrowsError(try HostFileTransferCompletion(document: invalid))
+        }
+        var invalid = payload
+        invalid["receiving"] = 1
+        XCTAssertThrowsError(try HostFileTransferCompletion(document: invalid))
+        invalid = payload
+        invalid["extra"] = true
+        XCTAssertThrowsError(try HostFileTransferCompletion(document: invalid))
+    }
+
     func testCursorRequestRoundTripsWithExactBoundedEnvelope() throws {
         let request = try cursorRequest(afterEventID: 7, maximumEventCount: 64)
         let data = try request.encoded()

@@ -29,6 +29,8 @@ pub struct Ui {
     history: RefCell<Option<(String, ServerSettings, String)>>,
     toast: glib::WeakRef<adw::ToastOverlay>,
     connections_dialog: RefCell<glib::WeakRef<adw::MessageDialog>>,
+    file_completions: RefCell<crate::file_completion::HostTracker>,
+    file_notifications: Rc<crate::file_notifications::Presenter>,
     pub on_connect: RefCell<Option<Box<dyn Fn(String, bool)>>>,
 }
 impl Ui {
@@ -45,9 +47,27 @@ impl Ui {
             history: RefCell::new(None),
             toast: toast.downgrade(),
             connections_dialog: RefCell::new(glib::WeakRef::new()),
+            file_completions: RefCell::new(crate::file_completion::HostTracker::default()),
+            file_notifications: Rc::new(crate::file_notifications::Presenter::default()),
             on_connect: RefCell::new(None),
         })
     }
+    fn notify_file_completions(&self, snapshot: &Snapshot) {
+        let completions = self.file_completions.borrow_mut().update(
+            snapshot.file_tasks.iter().map(|task| (
+                task.job, task.upload, task.local_directory.clone().map(Into::into),
+                task.status.as_str(),
+            )),
+        );
+        if let Some(window) = self.toast.upgrade()
+            .and_then(|t| t.root()).and_downcast::<gtk::Window>()
+        {
+            for completion in completions {
+                self.file_notifications.show(completion, &window);
+            }
+        }
+    }
+
     pub(crate) fn notice(&self, message: &str) {
         if let Some(directory) = crate::viewer::test_directory("FARPANE_FILES_SMOKE_DIR") {
             let _ = std::fs::write(
@@ -83,11 +103,13 @@ impl Ui {
         if update.disconnected {
             self.model.borrow_mut().snapshot.role = None;
             self.generation.set(0);
+            *self.file_completions.borrow_mut() = Default::default();
         }
         if update.finished {
             self.busy.set(false);
         }
         if let Some(snapshot) = update.snapshot {
+            self.notify_file_completions(&snapshot);
             self.generation.set(update.generation.unwrap_or(0));
             self.model.borrow_mut().snapshot = snapshot;
         }

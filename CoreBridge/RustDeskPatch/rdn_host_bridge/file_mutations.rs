@@ -92,6 +92,7 @@ fn prepare_native_host_write_job(
         expected_total_size,
         written_total_size: 0,
         skipped_total_size: 0,
+        skipped_files: false,
         overwrite_detection,
         awaiting_existing_target: None,
     })

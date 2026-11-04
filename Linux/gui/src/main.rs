@@ -7,6 +7,8 @@ mod desktop_smoke;
 mod devices;
 mod devices_smoke;
 mod diagnostics;
+mod file_completion;
+mod file_notifications;
 mod file_smoke;
 mod file_view;
 mod gpu_renderer;

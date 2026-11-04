@@ -122,7 +122,7 @@
              } else {
                  self.delayed_read_dir = Some((dir.to_owned(), show_hidden));
              }
-@@ -3326,7 +3393,308 @@
+@@ -3326,7 +3393,312 @@
              return false;
          };
          self.send(response).await;
@@ -366,8 +366,12 @@
 +                .await;
 +            }
 +            Ok(NativeHostReadJobStep::Done { file_num }) => {
-+                self.native_host_read_jobs.remove(index);
-+                self.send(fs::new_done(id, file_num)).await;
++                let job = self.native_host_read_jobs.remove(index);
++                let sent = self.stream.send(&fs::new_done(id, file_num)).await;
++                if sent.is_ok() {
++                    job.notify_sent();
++                }
++                allow_err!(sent);
 +            }
 +            Err(error) => {
 +                self.native_host_read_jobs.remove(index);

@@ -69,6 +69,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @unc
     var viewerFileTransferCoreURL: URL?
     var viewerFileTransferActiveTransferID: Int32?
     var viewerFileTransferActiveDirection: ViewerFileTransferActionDirection?
+    var viewerFileTransferDestination: URL?
+    let fileTransferCompletionPresenter = FileTransferCompletionPresenter()
     var viewerFileTransferActionConsumed = false
     var viewerOpenFileTransferUploadWhenStreaming = false
     var viewerFileTransferDestinationPicker: ViewerFileTransferDestinationPickerController?
@@ -153,6 +155,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @unc
     lazy var hostAgentBackgroundRegistrationMutationOwner =
         HostAgentBackgroundRegistrationMutationOwner.makeProduct()
     lazy var hostAgentBackgroundActivationOwner = HostAgentBackgroundActivationOwner.makeProduct(
+        onFileCompletion: { [weak self] completion in
+            DispatchQueue.main.async { self?.presentHostFileTransferCompletion(completion) }
+        },
         observer: { [weak self] view in
             DispatchQueue.main.async { [weak self] in
                 self?.applyHostAgentBackgroundActivationView(view)

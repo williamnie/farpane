@@ -417,6 +417,11 @@ pub enum EventKind {
         more: bool,
         entries: Vec<FileEntry>,
     },
+    TransferStarted {
+        job: i32,
+        upload: bool,
+        local_directory: Option<String>,
+    },
     Transfer {
         job: i32,
         name: String,
@@ -548,6 +553,8 @@ pub struct FileTask {
     pub detail: String,
     pub needs_confirmation: bool,
     pub overwrite_required: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub local_directory: Option<String>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

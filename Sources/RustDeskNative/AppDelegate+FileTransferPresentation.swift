@@ -11,6 +11,14 @@ import VideoPipeline
 import ViewerInput
 
 extension AppDelegate {
+    func presentHostFileTransferCompletion(_ completion: HostFileTransferCompletion) {
+        guard let window else { return }
+        fileTransferCompletionPresenter.show(
+            FileTransferCompletion(
+                receiving: completion.receiving, directory: completion.directory,
+                hasSkippedFiles: completion.hasSkippedFiles), on: window)
+    }
+
     func handleViewerFileTransferProductEvent(
         _ event: ViewerFileTransferProductEvent, sessionEpoch: UInt64
     ) {
@@ -20,6 +28,7 @@ extension AppDelegate {
         case .connectionFailed(_, let failure):
             viewerFileTransferActiveTransferID = nil
             viewerFileTransferActiveDirection = nil
+            viewerFileTransferDestination = nil
             viewerChrome?.updateFileTransferAction(active: false)
             viewerChrome?.setFileTransferAvailable(false)
             viewerChrome?.updateState(viewerFileTransferProductFailureText(failure), isError: true)
@@ -49,11 +58,19 @@ extension AppDelegate {
             guard transferID == viewerFileTransferActiveTransferID else { return }
             let direction = viewerFileTransferActiveDirection ?? .download
             let verb = direction == .upload ? "发送" : "接收"
+            let destination = viewerFileTransferDestination
             viewerFileTransferActiveTransferID = nil
             viewerFileTransferActiveDirection = nil
+            viewerFileTransferDestination = nil
             viewerChrome?.updateFileTransferAction(active: false, direction: direction)
             switch outcome {
-            case .completed: viewerChrome?.updateState("文件\(verb)完成", isError: false)
+            case .completed:
+                viewerChrome?.updateState("文件\(verb)成功", isError: false)
+                if let window {
+                    fileTransferCompletionPresenter.show(
+                        FileTransferCompletion(
+                            receiving: direction == .download, directory: destination), on: window)
+                }
             case .cancelled: viewerChrome?.updateState("文件\(verb)已取消", isError: false)
             case .failed(let failure):
                 viewerChrome?.updateState(

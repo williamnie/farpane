@@ -68,6 +68,35 @@ enum NativeHostReadOwnerState {
 }
 
 #[cfg(target_os = "macos")]
+fn notify_native_host_file_completion(
+    owner: &Arc<rdn_host_file_transfer::NativeHostFileServiceOwner>,
+    receiving: bool,
+    relative_directory: &Path,
+    skipped: bool,
+) {
+    let binding = {
+        let broker = MEDIA_BROKER.lock().unwrap();
+        if !broker.file_service_owner.as_ref()
+            .is_some_and(|current| Arc::ptr_eq(current, owner))
+        {
+            return;
+        }
+        broker.binding.clone()
+    };
+    if let Some(binding) = binding {
+        let directory = if receiving {
+            owner.presentation_path().join(relative_directory)
+                .to_string_lossy().into_owned()
+        } else {
+            String::new()
+        };
+        emit_bound_event(&binding, "fileTransferCompleted", json!({
+            "receiving": receiving, "directory": directory, "hasSkippedFiles": skipped,
+        }));
+    }
+}
+
+#[cfg(target_os = "macos")]
 fn native_host_read_owner() -> NativeHostReadOwnerState {
     let broker = MEDIA_BROKER.lock().unwrap();
     if broker.binding.is_none() {
@@ -209,6 +238,7 @@ pub(crate) fn native_host_begin_read_job(
         return NativeHostReadJobAdmission::Rejected(NativeHostReadJobError::InvalidFileNumber);
     }
     NativeHostReadJobAdmission::Admitted(NativeHostReadJob {
+        skipped_files: false,
         id,
         owner,
         wire_path,

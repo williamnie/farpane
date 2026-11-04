@@ -2,6 +2,7 @@
 #[derive(Debug)]
 pub(crate) struct NativeHostFileServiceOwner {
     root: NativeFileTransferRoot,
+    presentation_path: PathBuf,
     write_reservations: Mutex<HashSet<PathBuf>>,
 }
 
@@ -40,8 +41,14 @@ impl NativeHostFileServiceOwner {
     pub(crate) fn open_existing(root_path: &Path) -> RootResult<Self> {
         Ok(Self {
             root: NativeFileTransferRoot::open_existing(root_path)?,
+            presentation_path: root_path.to_path_buf(),
             write_reservations: Mutex::new(HashSet::new()),
         })
+    }
+
+    // 仅供完成通知打开目录，文件读写仍使用已验证的目录描述符。
+    pub(crate) fn presentation_path(&self) -> &Path {
+        &self.presentation_path
     }
 
     pub(crate) fn reserve_write_paths(

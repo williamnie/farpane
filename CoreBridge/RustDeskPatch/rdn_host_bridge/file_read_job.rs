@@ -1,6 +1,7 @@
 #[cfg(target_os = "macos")]
 #[derive(Debug)]
 pub(crate) struct NativeHostReadJob {
+    skipped_files: bool,
     id: i32,
     owner: Arc<rdn_host_file_transfer::NativeHostFileServiceOwner>,
     wire_path: String,
@@ -14,6 +15,9 @@ pub(crate) struct NativeHostReadJob {
 
 #[cfg(target_os = "macos")]
 impl NativeHostReadJob {
+    pub(crate) fn notify_sent(&self) {
+        notify_native_host_file_completion(&self.owner, false, Path::new(""), self.skipped_files);
+    }
     pub(crate) fn id(&self) -> i32 {
         self.id
     }
@@ -68,6 +72,7 @@ impl NativeHostReadJob {
             .map_err(native_host_read_job_error)?;
         match confirmation {
             NativeHostReadConfirmation::Skip => {
+                self.skipped_files = true;
                 self.current_file.take();
                 self.current_offset = 0;
                 self.next_file_num = file_num

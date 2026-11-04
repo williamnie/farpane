@@ -221,16 +221,19 @@ package final class HostAgentBackgroundRuntimeComposition: @unchecked Sendable {
     }
 
     package static func makeProduct(
-        observer: @escaping HostAgentBackgroundHealthAuthority.Observer = { _ in }
+        observer: @escaping HostAgentBackgroundHealthAuthority.Observer = { _ in },
+        onFileCompletion: @escaping HostAgentBackgroundProjectionAuthority.FileCompletionObserver =
+            { _ in }
     ) -> HostAgentBackgroundRuntimeComposition {
         let initialRegistration = HostAgentBackgroundServiceObserver.observeRegistrationStatus()
         let healthAuthority = HostAgentBackgroundHealthAuthority(
             initialRegistration: initialRegistration,
             observeRegistration: { HostAgentBackgroundServiceObserver.observeRegistrationStatus() },
             observer: observer)
-        let projectionAuthority = HostAgentBackgroundProjectionAuthority(observer: {
-            [weak healthAuthority] projection in healthAuthority?.acceptProjection(projection)
-        })
+        let projectionAuthority = HostAgentBackgroundProjectionAuthority(
+            observer: { [weak healthAuthority] projection in
+                healthAuthority?.acceptProjection(projection)
+            }, onFileCompletion: onFileCompletion)
         let reconnectOwner = HostAgentXPCReconnectOwner.makeProduct(
             projectionAuthority: projectionAuthority)
         return HostAgentBackgroundRuntimeComposition(

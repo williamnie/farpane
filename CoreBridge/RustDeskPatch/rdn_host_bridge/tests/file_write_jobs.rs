@@ -11,7 +11,13 @@
             )
             .expect("open private receive root"),
         );
+        let events: Mutex<Vec<Value>> = Mutex::new(Vec::new());
         let mut host = ready_test_host("native-write-root-zero-test");
+        host.callbacks = RdnHostCallbacks {
+            abi_version: HOST_ABI_VERSION,
+            on_event: Some(collect_test_event),
+            context: &events as *const Mutex<Vec<Value>> as *mut c_void,
+        };
         host.file_service_owner = Some(owner);
         bind_media_host(&host);
 
@@ -38,7 +44,16 @@
             Ok(NativeHostWriteDigestDecision::ConfirmedOffset(0))
         );
         assert_eq!(job.write_block(1, b"abc", false), Ok(()));
+        assert!(events.lock().unwrap().iter()
+            .all(|event| event["eventType"] != "fileTransferCompleted"));
         assert_eq!(job.finish(2), Ok(()));
+        let completed: Vec<_> = events.lock().unwrap().iter()
+            .filter(|event| event["eventType"] == "fileTransferCompleted")
+            .cloned().collect();
+        assert_eq!(completed.len(), 1);
+        assert_eq!(completed[0]["payload"]["receiving"], true);
+        assert_eq!(Path::new(completed[0]["payload"]["directory"].as_str().unwrap()), receive_root.as_path());
+        assert_eq!(completed[0]["payload"]["hasSkippedFiles"], false);
         assert_eq!(fs::read(fixture.root.join("data.txt")).unwrap(), b"abc");
         assert!(!fixture.root.join("zero.txt.farpane-part").exists());
         unbind_media_host();

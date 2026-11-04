@@ -430,6 +430,11 @@ impl Client {
                     reported: Instant::now(),
                 };
                 self.send(message)?;
+                self.state.emit(EventKind::TransferStarted {
+                    job: id,
+                    upload: false,
+                    local_directory: Path::new(&local).parent().and_then(|p| p.to_str()).map(str::to_owned),
+                });
                 self.report(id, &job, "waiting", false);
                 self.jobs.insert(id, job);
             }
@@ -520,6 +525,7 @@ impl Client {
             touched: Instant::now(),
             reported: Instant::now(),
         };
+        self.state.emit(EventKind::TransferStarted { job: id, upload: true, local_directory: None });
         self.report(id, &job, "scanning", false);
         self.jobs.insert(id, job);
         Ok(())

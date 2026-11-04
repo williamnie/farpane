@@ -57,6 +57,7 @@ extension AppDelegate {
         viewerFileTransferComposition = nil
         viewerFileTransferActiveTransferID = nil
         viewerFileTransferActiveDirection = nil
+        viewerFileTransferDestination = nil
         viewerFileTransferActionConsumed = false
         _ = previous?.teardown()
         return installViewerFileTransferComposition(coreURL: coreURL, context: context)
@@ -73,6 +74,7 @@ extension AppDelegate {
         viewerFileTransferPasswordPrompt = nil
         viewerFileTransferActiveTransferID = nil
         viewerFileTransferActiveDirection = nil
+        viewerFileTransferDestination = nil
         viewerFileTransferActionConsumed = false
         viewerFileTransferConnectionContext = nil
         viewerFileTransferCoreURL = nil
@@ -202,7 +204,9 @@ extension AppDelegate {
             let result = composition.requestDownload(
                 baseConfiguration: configuration, destinationDirectory: destinationDirectory)
             switch result {
-            case .accepted(let transferID): outcome = (transferID, .download)
+            case .accepted(let transferID):
+                viewerFileTransferDestination = destinationDirectory
+                outcome = (transferID, .download)
             case .destinationRejected:
                 viewerChrome?.updateState("接收目录必须属于当前用户且权限为 0700", isError: true)
                 outcome = (nil, .download)
