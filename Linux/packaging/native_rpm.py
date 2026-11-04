@@ -19,6 +19,7 @@ PREFIX = Path('usr/lib64') / PACKAGE
 # zlib's SONAME capability supports both zlib and zlib-ng-compat providers.
 FEDORA = {
     'python3 (>= 3.11)': 'python3 >= 3.11', 'libsecret-1-0': 'libsecret',
+    'glib-networking': 'glib-networking', 'ca-certificates': 'ca-certificates',
     'libc6 (>= 2.39)': 'glibc >= 2.39', 'libgcc-s1': 'libgcc',
     'libstdc++6 (>= 5)': 'libstdc++', 'libegl1': 'libglvnd-egl',
     'libgles2': 'libglvnd-gles', 'libgbm1': 'mesa-libgbm',

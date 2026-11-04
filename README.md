@@ -219,6 +219,10 @@ Scripts/run-productization-acceptance-mbp.sh
 
 ### 发布
 
+macOS 与 Linux 客户端默认在启动时和运行期间每 6 小时检查 GitHub 上可下载的新版本（包含预览版），发现更新后在首页显示提示。可在设置中关闭自动检查或手动检查；macOS 也可从“FarPane → 检查更新…”操作。点击提示会打开官方发布页，由用户下载并安装；不会自动替换运行中的程序或中断远程会话。检查只查询公开版本信息，不发送设备 ID、服务器配置或凭据。断网时不弹出自动错误提示，约 1 小时后重试。
+
+更新检查只接受带有匹配版本、平台及架构安装包的 Release；仅上传源码、尚未上传完成或附带旧版安装包的发布不会触发提示。macOS 安装包应命名为 `FarPane-v<版本>-macos-arm64.dmg`、`FarPane-v<版本>-macos-x86_64.dmg` 或 `FarPane-v<版本>-macos-universal.dmg`，并与发布 tag 一致。只查询最近 100 条 Release，不自动安装或校验下载内容。
+
 普通分支推送和 PR 不触发 GitHub Actions。只有推送 `v*` tag，或手动运行 [GitHub Release workflow](.github/workflows/release.yml) 并指定已有的 `v*` tag，才会执行测试、构建并创建 prerelease。签名 macOS 二进制由受信任的 macOS 构建机生成并上传；Developer ID notarization 接入前，Release 页面会明确标记预览属性。
 
 打包时，松散的 `.app` 副本应留在隐藏的 `.noindex` 目录中，DMG 可以放在普通发布目录。不要在正式应用运行期间直接启动另一架构的待发布 `.app`（包括 `--help`）；这会让相同 Bundle ID 对应不同 Mach-O UUID，干扰本地网络授权。安装脚本会清理重复注册。手动验收或挂载 DMG 后，先卸载镜像，再执行 `python3 Scripts/register-installed-app.py /Applications/FarPane.app`（使用实际安装路径），确认只有正式安装版本保留注册；该命令不删除副本或重置权限。
@@ -418,6 +422,10 @@ Scripts/run-productization-acceptance-mbp.sh
 See [`docs/benchmark-results.md`](docs/benchmark-results.md) for current results and limitations. Never place a password in command arguments, repository files, logs, or chat.
 
 ### Releases
+
+The macOS and Linux clients check GitHub for downloadable updates at launch and every six hours while running, including prereleases. A home-screen notice links to the official release page for manual download and installation. Automatic checks can be disabled in settings, which also provide a manual check; macOS additionally provides “FarPane → 检查更新…”. Checks never replace the running app or interrupt remote sessions. Only public release metadata is requested; device IDs, server settings, and credentials are not sent. Automatic network failures remain quiet and are retried after about an hour.
+
+Only releases with an uploaded installer matching the version, platform, and architecture qualify. Source-only releases, unfinished uploads, and releases carrying older installers are ignored. Name macOS installers `FarPane-v<version>-macos-arm64.dmg`, `FarPane-v<version>-macos-x86_64.dmg`, or `FarPane-v<version>-macos-universal.dmg`, matching the release tag. Checks cover the most recent 100 releases; downloading, verifying, and installing remain manual.
 
 Branch pushes and pull requests do not trigger GitHub Actions. Only pushing a `v*` tag or manually running the [GitHub Release workflow](.github/workflows/release.yml) with an existing `v*` tag runs the tests, builds the viewer, and creates a prerelease. Signed macOS binaries are produced and uploaded from a trusted macOS signing host. Until Developer ID notarization is wired in, the Releases page explicitly identifies these binaries as previews.
 

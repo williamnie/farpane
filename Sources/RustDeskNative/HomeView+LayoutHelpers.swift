@@ -41,14 +41,16 @@ extension HomeView {
 
         let separator = makeSeparator()
         let stack = NSStackView(
-            views: [brand, navigation, serverTitle, serverWrap, NSView(), separator, statusWrap],
-            axis: .vertical, alignment: .leading, spacing: 12)
+            views: [
+                brand, navigation, serverTitle, serverWrap, NSView(), updateNoticeButton, separator,
+                statusWrap,
+            ], axis: .vertical, alignment: .leading, spacing: 12)
         stack.setCustomSpacing(28, after: brand)
         stack.setCustomSpacing(22, after: navigation)
         stack.setCustomSpacing(7, after: serverTitle)
-        for view in [brand, navigation, serverTitle, serverWrap, separator, statusWrap] {
-            view.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
-        }
+        for view in [
+            brand, navigation, serverTitle, serverWrap, updateNoticeButton, separator, statusWrap,
+        ] { view.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true }
 
         sidebar.addSubview(stack)
         stack.translatesAutoresizingMaskIntoConstraints = false

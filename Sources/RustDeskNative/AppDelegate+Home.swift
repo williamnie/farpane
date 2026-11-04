@@ -103,6 +103,15 @@ extension AppDelegate {
             self?.refreshHomeUI()
         }
         view.onOpenLoginStartupSystemSettings = { SMAppService.openSystemSettingsLoginItems() }
+        view.onAutomaticUpdatesToggle = { [weak self] enabled in
+            MainActorBackport.assumeIsolated {
+                self?.releaseUpdateChecker.setAutomaticEnabled(enabled)
+            }
+        }
+        view.onCheckForUpdates = { [weak self] in self?.checkForReleaseUpdates(nil) }
+        view.onOpenReleasePage = { [weak self] in
+            MainActorBackport.assumeIsolated { self?.openReleasePage() }
+        }
         view.onHostClipboardToggle = { [weak self] preference, enabled in
             self?.handleHostClipboardPolicyToggle(preference, enabled: enabled)
         }
@@ -168,6 +177,7 @@ extension AppDelegate {
     func refreshHomeUI() {
         guard let homeView else { return }
         homeView.applyLoginStartup(loginStartupSettings.presentation())
+        MainActorBackport.assumeIsolated { homeView.applyUpdateChecker(releaseUpdateChecker) }
         refreshHostAgentRuntimeConfigurationCoherence()
         projectHostAgentBackgroundCommandPresentation(
             hostAgentBackgroundCommandPresentationOwner.snapshot())

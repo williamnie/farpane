@@ -20,6 +20,7 @@ struct Binding {
 pub struct Ui {
     pub model: Rc<RefCell<Model>>,
     startup: Rc<crate::startup_ui::Settings>,
+    pub(crate) updates: Rc<crate::updates_ui::Updates>,
     bridge: Bridge,
     bindings: RefCell<Vec<Binding>>,
     updating: Cell<bool>,
@@ -35,6 +36,7 @@ impl Ui {
         Rc::new(Self {
             model,
             startup: crate::startup_ui::Settings::new(),
+            updates: crate::updates_ui::Updates::new(toast),
             bridge: Bridge::start(),
             bindings: RefCell::new(Vec::new()),
             updating: Cell::new(false),
@@ -760,6 +762,7 @@ impl Ui {
             "按需开启共享。权限与媒体后端以后台实际状态为准。",
         );
         page.append(&self.startup.group());
+        page.append(&self.updates.group());
         let media = adw::PreferencesGroup::builder().title("媒体与诊断").build();
         media.add(&self.switch(
             "GPU 加速",

@@ -418,6 +418,7 @@ fn home(
     });
     header.pack_end(&settings);
     root.append(&header);
+    root.append(&ui.updates.banner());
 
     let body = gtk::Box::new(gtk::Orientation::Horizontal, 0);
     body.set_vexpand(true);

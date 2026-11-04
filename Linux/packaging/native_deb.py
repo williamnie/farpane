@@ -45,7 +45,8 @@ LIBRARIES = {
 
 
 def dependencies(artifact, build):
-    required = {'python3 (>= 3.11)', 'libsecret-1-0'}
+    # GIO 的 TLS/代理后端是动态模块，不能仅通过 ELF NEEDED 自动发现。
+    required = {'python3 (>= 3.11)', 'libsecret-1-0', 'glib-networking', 'ca-certificates'}
     for name, recorded in build['packaged_binaries'].items():
         path = artifact / native_bundle.relative_path(name)
         header = subprocess.check_output(['readelf', '-h', str(path)], text=True)

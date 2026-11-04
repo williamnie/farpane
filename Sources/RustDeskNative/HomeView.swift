@@ -11,6 +11,9 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     var onLoginStartupToggle: ((Bool) -> Void)?
     var onRefreshLoginStartup: (() -> Void)?
     var onOpenLoginStartupSystemSettings: (() -> Void)?
+    var onAutomaticUpdatesToggle: ((Bool) -> Void)?
+    var onCheckForUpdates: (() -> Void)?
+    var onOpenReleasePage: (() -> Void)?
     var onHostClipboardToggle: ((HostClipboardPreference, Bool) -> Void)?
     var onHostFileTransferToggle: ((Bool) -> Void)?
     var onChooseHostFileTransferReceiveRoot: (() -> Void)?
@@ -50,6 +53,11 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     let loginStartupSwitch = NSSwitch()
     let loginStartupStatusLabel = NSTextField(wrappingLabelWithString: "")
     let loginStartupSystemSettingsButton = NSButton(title: "打开系统登录项设置", target: nil, action: nil)
+    let automaticUpdatesSwitch = NSSwitch()
+    let updateStatusLabel = NSTextField(wrappingLabelWithString: "")
+    let checkUpdatesButton = NSButton(title: "检查更新", target: nil, action: nil)
+    let openReleaseButton = NSButton(title: "打开发布页", target: nil, action: nil)
+    let updateNoticeButton = NSButton(title: "", target: nil, action: nil)
     let hostStatusDot = NSView()
     let hostStatusLabel = NSTextField(labelWithString: "已关闭")
     let hostIDLabel = NSTextField(labelWithString: "本机 ID：—")

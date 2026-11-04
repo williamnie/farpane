@@ -21,6 +21,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @unc
 
     let options = Options(arguments: CommandLine.arguments)
     let loginStartupSettings = LoginStartupSettings()
+    @MainActor lazy var releaseUpdateChecker = ReleaseUpdateChecker()
+    var releaseUpdateTimer: Timer?
+    var releaseUpdateMenuItem: NSMenuItem?
     let hostAutomaticStartupPreference = HostAutomaticStartupPreference()
     let hostViewerConcurrencyEvidenceOwner = HostViewerConcurrencyEvidenceProcessOwner()
     let hostAgentApplicationConcurrencyObservationState =
@@ -232,6 +235,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @unc
             keyEquivalent: "")
         aboutItem.target = application
         applicationMenu.addItem(aboutItem)
+        let updatesItem = NSMenuItem(
+            title: "检查更新…", action: #selector(checkForReleaseUpdates(_:)), keyEquivalent: "")
+        updatesItem.target = self
+        applicationMenu.addItem(updatesItem)
+        releaseUpdateMenuItem = updatesItem
         let logsItem = NSMenuItem(
             title: "打开诊断日志…", action: #selector(openDiagnosticLogs(_:)), keyEquivalent: "")
         logsItem.target = self
@@ -331,9 +339,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @unc
             _ = hostViewerConcurrencyEvidenceOwner.terminateAndWait()
             exit(2)
         }
+        MainActorBackport.assumeIsolated { startReleaseChecks() }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        releaseUpdateTimer?.invalidate()
+        MainActorBackport.assumeIsolated { releaseUpdateChecker.stop() }
         cancelBackgroundPasswordOperation()
         _ = hostAgentBackgroundRegistrationMutationOwner.apply(.unregisterBackgroundAgent)
         _ = hostAgentBackgroundActivationOwner.apply(.applicationWillTerminate)
@@ -346,6 +357,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, @unc
     }
 
     func applicationDidBecomeActive(_ notification: Notification) {
+        if releaseUpdateTimer != nil {
+            MainActorBackport.assumeIsolated { _ = releaseUpdateChecker.checkIfDue() }
+        }
         loginStartupSettings.refresh()
         reconcileViewerKeyboardFocus(applicationActive: true)
         reconcileHostProductOwnership()
