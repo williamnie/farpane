@@ -30,34 +30,43 @@ private struct HostDirectAccessSettings: Codable {
 extension HomeView {
     func makeDirectAccessSettings() -> NSView {
         let settings = HostDirectAccessSettings.load()
-        hostDirectAccessCheckbox.state = settings?.enabled == true ? .on : .off
-        hostDirectAccessCheckbox.target = self
-        hostDirectAccessCheckbox.action = #selector(directAccessToggled)
+        hostDirectAccessSwitch.state = settings?.enabled == true ? .on : .off
+        hostDirectAccessSwitch.target = self
+        hostDirectAccessSwitch.action = #selector(directAccessToggled)
+        hostDirectAccessSwitch.setAccessibilityLabel("允许 IP 直连")
         hostDirectAccessPort.stringValue = settings?.port.map(String.init) ?? ""
-        hostDirectAccessPort.isEnabled = settings?.enabled == true
+        hostDirectAccessPort.target = self
+        hostDirectAccessPort.action = #selector(applyDirectAccessPort)
+        hostDirectAccessPort.placeholderString = "21118"
         hostDirectAccessPort.setAccessibilityLabel("直连端口")
         hostDirectAccessPort.widthAnchor.constraint(equalToConstant: 86).isActive = true
-        let confirm = NSButton(title: "确认", target: self, action: #selector(saveDirectAccess))
-        let row = NSStackView(
-            views: [NSTextField(labelWithString: "端口"), hostDirectAccessPort, confirm],
+        let portLabel = NSTextField(labelWithString: "端口")
+        portLabel.font = .systemFont(ofSize: 12)
+        portLabel.textColor = .secondaryLabelColor
+        let portRow = NSStackView(
+            views: [portLabel, hostDirectAccessPort, hostDirectAccessStatus],
             axis: .horizontal, alignment: .centerY, spacing: 8)
-        return NSStackView(
-            views: [hostDirectAccessCheckbox, row, hostDirectAccessStatus],
-            axis: .vertical, alignment: .leading, spacing: 8)
+        return NSStackView(views: [portRow], axis: .vertical, alignment: .leading)
+    }
+
+    @objc private func applyDirectAccessPort() {
+        guard hostDirectAccessSwitch.state == .on else { return }
+        saveDirectAccess(switchChanged: false)
     }
 
     @objc private func directAccessToggled() {
-        hostDirectAccessPort.isEnabled = hostDirectAccessCheckbox.state == .on
-        hostDirectAccessStatus.stringValue = ""
+        saveDirectAccess(switchChanged: true)
     }
 
-    @objc private func saveDirectAccess() {
-        let enabled = hostDirectAccessCheckbox.state == .on
+    private func saveDirectAccess(switchChanged: Bool) {
+        let enabled = hostDirectAccessSwitch.state == .on
         let portText = hostDirectAccessPort.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
         let port: UInt16?
         if enabled {
             guard let requestedPort = UInt16(portText), requestedPort > 0 else {
-                hostDirectAccessStatus.stringValue = "端口必须为 1 至 65535。"
+                if switchChanged { hostDirectAccessSwitch.state = .off }
+                hostDirectAccessStatus.stringValue = "请输入 1 至 65535 的端口。"
+                window?.makeFirstResponder(hostDirectAccessPort)
                 return
             }
             port = requestedPort
@@ -67,9 +76,10 @@ extension HomeView {
 
         do {
             try HostDirectAccessSettings(enabled: enabled, port: port).save()
-            hostDirectAccessPort.stringValue = port.map(String.init) ?? ""
+            if enabled { hostDirectAccessPort.stringValue = port.map(String.init) ?? "" }
             hostDirectAccessStatus.stringValue = "设置已保存。"
         } catch {
+            if switchChanged { hostDirectAccessSwitch.state = enabled ? .off : .on }
             hostDirectAccessStatus.stringValue = "无法保存直连设置。"
         }
     }

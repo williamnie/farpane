@@ -137,7 +137,9 @@ extension HomeView {
         }
 
         let directAccessSection = makeSettingsSection(
-            symbolName: "network", title: "IP 直连", content: makeDirectAccessSettings())
+            symbolName: "network", title: "IP 直连", detail: "允许 IP 直连",
+            detailAccessory: hostDirectAccessSwitch,
+            content: makeDirectAccessSettings())
         let clipboardSection = makeSettingsSection(
             symbolName: "doc.on.clipboard", title: "剪贴板同步", detail: "按数据类型和方向分别控制",
             content: hostClipboardSettings)
@@ -149,8 +151,8 @@ extension HomeView {
             content: hostFileTransferSettings)
         let sharingCard = NSStackView(
             views: [
-                directAccessSection, makeSeparator(), clipboardSection, makeSeparator(),
-                audioSection, makeSeparator(), fileSection,
+                clipboardSection, makeSeparator(), audioSection, makeSeparator(),
+                fileSection, makeSeparator(), directAccessSection,
             ],
             axis: .vertical, alignment: .leading, spacing: 16)
         for view in sharingCard.arrangedSubviews {

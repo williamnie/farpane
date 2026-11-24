@@ -34,7 +34,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     var onReadLocalClipboardText: (() -> String?)?
     var onWriteLocalClipboardText: ((String) -> Bool)?
 
-    let hostDirectAccessCheckbox = NSButton(checkboxWithTitle: "允许 IP 直连", target: nil, action: nil)
+    let hostDirectAccessSwitch = NSSwitch()
     let hostDirectAccessPort = NSTextField()
     let hostDirectAccessStatus = NSTextField(labelWithString: "")
 
