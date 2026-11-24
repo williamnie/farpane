@@ -176,7 +176,7 @@ FarPane 只把固定 Core 路径作为内部实现细节，不要求用户选择
 3. 在首页开启“被控 Host”，确认本机 ID 和临时密码，或设置永久密码。
 4. 收到入站请求后在 FarPane 中批准或拒绝；音频、剪贴板和文件传输按需单独开启。
 
-在 **共享设置** 中填写端口，再打开「允许 IP 直连」开关。直连默认关闭，开启时需填写端口。监听地址为本机回环地址 `127.0.0.1`。开启后，修改端口并按回车或离开输入框即可应用。已运行的被控 Host 会自动应用，入站认证和审批照常生效。直连会话本身不加密。跨设备连接请通过 SSH 等加密隧道。转发目标请明确填写 Host 的 IPv4 回环地址 `127.0.0.1`，因为 `localhost` 也可能解析到 IPv6 地址 `::1`。通过隧道的连接共享回环地址的登录失败限额，连续输错密码可能暂时影响其他隧道用户。
+「允许本机代理或隧道接入」默认关闭。在 **共享设置 → 代理与隧道** 中填写端口并打开开关。Host 开始监听后，将本机代理或隧道的转发目标设为界面显示的地址（例如 `127.0.0.1:21118`）。请明确使用 IPv4 回环地址，因为 `localhost` 也可能解析到 IPv6 地址 `::1`。修改端口后按回车或离开输入框，运行中的 Host 会自动应用。入站认证和审批照常生效。RustDesk 直连会话本身不加密，跨设备使用时请通过 SSH 等加密隧道。通过该入口的连接共享回环地址的登录失败限额，连续输错密码可能暂时影响其他用户。
 
 在 **共享设置 → 启动 → 开机自启** 中，可以选择登录 Mac 后自动打开 FarPane。开关读取系统登录项状态；需要系统批准时可直接打开“登录项与扩展”。退出应用不会取消此登录项，关闭开关才会取消下次登录启动。该功能不提供登录前的远程控制；明确关闭“允许连接此 Mac”后，自动启动不会重新启用被控端。
 
@@ -389,7 +389,7 @@ As a Host:
 3. Enable “被控 Host” on the home screen, then use the displayed device ID and temporary password or configure a permanent password.
 4. Approve or reject incoming requests in FarPane. Enable audio, clipboard, and file transfer separately when needed.
 
-In **Sharing Settings**, enter a port, then turn on direct IP access. Access is off by default and requires a port when enabled. The listener uses the loopback address `127.0.0.1`. While enabled, press Return or leave the field to apply a port change. A running Host applies the change automatically and continues to enforce incoming authentication and approval. Direct sessions are unencrypted. Use an encrypted tunnel such as SSH to connect from another device. Set the forwarding target explicitly to the Host’s IPv4 loopback address `127.0.0.1` because `localhost` may also resolve to the IPv6 address `::1`. Tunneling shares the loopback login-failure limit, so repeated incorrect passwords may temporarily affect other tunnel users.
+Local proxy or tunnel access is off by default. In **Sharing Settings → Proxy and Tunnel**, enter a port and turn on “允许本机代理或隧道接入”. Once the Host is listening, set the local proxy or tunnel to forward to the displayed address (for example, `127.0.0.1:21118`). Use the IPv4 loopback address explicitly because `localhost` may resolve to the IPv6 address `::1`. Press Return or leave the field to apply a port change to the running Host. Incoming authentication and approval still apply. The RustDesk direct session itself is unencrypted. Use an encrypted tunnel such as SSH when connecting from another device. Connections to this listener share the loopback login-failure limit, so repeated incorrect passwords may temporarily affect other users.
 
 Use **共享设置 → 启动 → 开机自启** to launch FarPane after signing in to your Mac. The switch reflects the system login item and offers a link to System Settings when approval is required. Quitting the app preserves this choice; switching it off disables future login launches. This does not enable remote control before login, and explicitly disabling Host remains effective after the next launch.
 

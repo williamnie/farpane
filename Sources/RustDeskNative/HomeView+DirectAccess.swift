@@ -35,11 +35,11 @@ extension HomeView {
             let port = HostDirectAccessSettings.load()?.port
         else { return }
         switch status {
-        case "listening:\(port)": hostDirectAccessStatus.stringValue = "正在监听 \(port)"
+        case "listening:\(port)": hostDirectAccessStatus.stringValue = "正在监听 127.0.0.1:\(port)"
         case "portInUse:\(port)": hostDirectAccessStatus.stringValue = "端口已被占用"
         case "bindFailed:\(port)": hostDirectAccessStatus.stringValue = "无法监听端口"
         case nil:
-            hostDirectAccessStatus.stringValue = hostRunning ? "等待 Host 监听 \(port)" : "等待 Host 启动"
+            hostDirectAccessStatus.stringValue = hostRunning ? "等待 Host 监听 127.0.0.1:\(port)" : "等待 Host 启动"
         default: hostDirectAccessStatus.stringValue = "正在应用端口 \(port)"
         }
     }
@@ -49,13 +49,13 @@ extension HomeView {
         hostDirectAccessSwitch.state = settings?.enabled == true ? .on : .off
         hostDirectAccessSwitch.target = self
         hostDirectAccessSwitch.action = #selector(directAccessToggled)
-        hostDirectAccessSwitch.setAccessibilityLabel("允许 IP 直连")
+        hostDirectAccessSwitch.setAccessibilityLabel("允许本机代理或隧道接入")
         hostDirectAccessPort.stringValue = settings?.port.map(String.init) ?? ""
         hostDirectAccessPort.target = self
         hostDirectAccessPort.action = #selector(applyDirectAccessPort)
         hostDirectAccessPort.cell?.sendsActionOnEndEditing = true
         hostDirectAccessPort.placeholderString = "21118"
-        hostDirectAccessPort.setAccessibilityLabel("直连端口")
+        hostDirectAccessPort.setAccessibilityLabel("本机监听端口")
         hostDirectAccessPort.widthAnchor.constraint(equalToConstant: 86).isActive = true
         let portLabel = NSTextField(labelWithString: "端口")
         portLabel.font = .systemFont(ofSize: 12)
@@ -99,12 +99,12 @@ extension HomeView {
         do {
             try HostDirectAccessSettings(enabled: enabled, port: port).save()
             if enabled { hostDirectAccessPort.stringValue = port.map(String.init) ?? "" }
-            hostDirectAccessStatus.stringValue = enabled ? "等待 Host 监听" : "已关闭直连"
+            hostDirectAccessStatus.stringValue = enabled ? "等待 Host 监听" : "已关闭本机接入"
         } catch {
             hostDirectAccessHasInputError = true
             if switchChanged { hostDirectAccessSwitch.state = enabled ? .off : .on }
             else { hostDirectAccessPort.stringValue = savedPort.map(String.init) ?? "" }
-            hostDirectAccessStatus.stringValue = "无法保存直连设置。"
+            hostDirectAccessStatus.stringValue = "无法保存接入设置。"
         }
     }
 }

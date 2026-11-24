@@ -137,7 +137,7 @@ extension HomeView {
         }
 
         let directAccessSection = makeSettingsSection(
-            symbolName: "network", title: "IP 直连", detail: "允许 IP 直连",
+            symbolName: "network", title: "代理与隧道", detail: "允许本机代理或隧道接入",
             detailAccessory: hostDirectAccessSwitch,
             content: makeDirectAccessSettings())
         let clipboardSection = makeSettingsSection(
