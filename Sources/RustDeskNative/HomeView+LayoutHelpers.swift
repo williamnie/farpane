@@ -173,7 +173,7 @@ extension HomeView {
             content: stack, insets: NSEdgeInsets(top: 9, left: 12, bottom: 10, right: 12))
     }
 
-    func makeSettingsSection(symbolName: String, title: String, detail: String, content: NSView)
+    func makeSettingsSection(symbolName: String, title: String, detail: String? = nil, content: NSView)
         -> NSView
     {
         let icon = NSImageView(
@@ -188,11 +188,13 @@ extension HomeView {
         ])
         let titleLabel = NSTextField(labelWithString: title)
         titleLabel.font = .systemFont(ofSize: 13, weight: .semibold)
-        let detailLabel = NSTextField(labelWithString: detail)
-        detailLabel.font = .systemFont(ofSize: 10.5)
-        detailLabel.textColor = .tertiaryLabelColor
-        let copy = NSStackView(
-            views: [titleLabel, detailLabel], axis: .vertical, alignment: .leading, spacing: 3)
+        let copy = NSStackView(views: [titleLabel], axis: .vertical, alignment: .leading, spacing: 3)
+        if let detail {
+            let detailLabel = NSTextField(labelWithString: detail)
+            detailLabel.font = .systemFont(ofSize: 10.5)
+            detailLabel.textColor = .tertiaryLabelColor
+            copy.addArrangedSubview(detailLabel)
+        }
         let header = NSStackView(
             views: [icon, copy, NSView()], axis: .horizontal, alignment: .centerY, spacing: 10)
         let section = NSStackView(
