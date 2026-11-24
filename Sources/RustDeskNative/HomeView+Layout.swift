@@ -146,7 +146,10 @@ extension HomeView {
             symbolName: "folder", title: "文件接收", detail: "限定接收根目录并逐次确认",
             content: hostFileTransferSettings)
         let sharingCard = NSStackView(
-            views: [clipboardSection, makeSeparator(), audioSection, makeSeparator(), fileSection],
+            views: [
+                makeDirectAccessSettings(), makeSeparator(), clipboardSection, makeSeparator(),
+                audioSection, makeSeparator(), fileSection,
+            ],
             axis: .vertical, alignment: .leading, spacing: 16)
         for view in sharingCard.arrangedSubviews {
             view.widthAnchor.constraint(equalTo: sharingCard.widthAnchor).isActive = true

@@ -176,6 +176,8 @@ FarPane 只把固定 Core 路径作为内部实现细节，不要求用户选择
 3. 在首页开启“被控 Host”，确认本机 ID 和临时密码，或设置永久密码。
 4. 收到入站请求后在 FarPane 中批准或拒绝；音频、剪贴板和文件传输按需单独开启。
 
+在 **共享设置** 中勾选「允许 IP 直连」，填写端口并点击「确认」。直连默认关闭，开启时需填写端口。监听地址为本机回环地址 `127.0.0.1`。已运行的被控 Host 会自动应用，入站认证和审批照常生效。高级设置可以在 `FarPaneHost2.toml` 的 `[options]` 中通过 `direct-access-bind` 指定监听 IP，修改后重启 HostAgent。
+
 在 **共享设置 → 启动 → 开机自启** 中，可以选择登录 Mac 后自动打开 FarPane。开关读取系统登录项状态；需要系统批准时可直接打开“登录项与扩展”。退出应用不会取消此登录项，关闭开关才会取消下次登录启动。该功能不提供登录前的远程控制；明确关闭“允许连接此 Mac”后，自动启动不会重新启用被控端。
 
 普通远程会话首次收到视频分辨率、或远端分辨率变化时，窗口会自动按画面比例调整大小，并根据本机 Retina 缩放和屏幕可用区域适配，避免标题栏或固定窗口比例造成额外黑边。同一分辨率下会保留手动调整的窗口大小；全屏期间不调整窗口，尚未应用的分辨率变化会在退出全屏后适配。
@@ -386,6 +388,8 @@ As a Host:
 2. Grant Screen Recording, Accessibility, and Input Monitoring permissions in System Settings.
 3. Enable “被控 Host” on the home screen, then use the displayed device ID and temporary password or configure a permanent password.
 4. Approve or reject incoming requests in FarPane. Enable audio, clipboard, and file transfer separately when needed.
+
+In **Sharing Settings**, enable direct IP access, enter a port, and confirm. Access is off by default and requires a port when enabled. The listener uses the loopback address `127.0.0.1`. A running Host applies the change automatically and continues to enforce incoming authentication and approval. For an advanced bind address, set `direct-access-bind` in the `[options]` table of `FarPaneHost2.toml` and restart HostAgent.
 
 Use **共享设置 → 启动 → 开机自启** to launch FarPane after signing in to your Mac. The switch reflects the system login item and offers a link to System Settings when approval is required. Quitting the app preserves this choice; switching it off disables future login launches. This does not enable remote control before login, and explicitly disabling Host remains effective after the next launch.
 

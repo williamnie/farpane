@@ -59,6 +59,10 @@ impl HostRuntime {
                 };
                 runtime.block_on(async move {
                     let server = crate::server::new();
+                    #[cfg(target_os = "macos")]
+                    hbb_common::tokio::spawn(
+                        crate::RendezvousMediator::run_native_host_direct_server(server.clone()),
+                    );
                     let mut reconnect_backoff = HostRuntimeReconnectBackoff::default();
                     while !thread_stop.load(Ordering::Acquire) {
                         crate::RendezvousMediator::prepare_native_host_runtime();
