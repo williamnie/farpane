@@ -414,6 +414,7 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
     package let schemaVersion: Int
     package let hostState: String
     package let localID: String
+    package let directAccessStatus: String?
     package let authenticatedConnectionCount: UInt64
     package let sessionAvailability: HostSessionAvailability
     package let sessionUnavailableReason: HostSessionUnavailableReason?
@@ -446,6 +447,7 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
         try self.init(
             schemaVersion: 8, hostState: projection.hostState, localID: projection.localID,
             authenticatedConnectionCount: projection.authenticatedConnectionCount,
+            directAccessStatus: projection.directAccessStatus,
             sessionAvailability: projection.sessionAvailability,
             sessionUnavailableReason: projection.sessionUnavailableReason,
             registrationStatus: projection.registrationStatus,
@@ -458,7 +460,7 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
 
     fileprivate init(document: [String: Any], hostInstanceID: String) throws {
         guard
-            Set(document.keys)
+            Set(document.keys).subtracting(["directAccessStatus"])
                 == Set([
                     "schemaVersion", "hostState", "localId", "authenticatedConnectionCount",
                     "sessionAvailability", "sessionUnavailableReason", "registrationStatus",
@@ -513,9 +515,14 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
                 document["lastError"],
                 maximumUTF8Bytes: HostAgentXPCWireSnapshotContract.maximumLastErrorBytes)
         else { throw HostAgentXPCWireSnapshotDocumentError.invalidDocument }
+        let directAccessStatus = document["directAccessStatus"] as? String
+        guard document["directAccessStatus"] == nil || directAccessStatus != nil else {
+            throw HostAgentXPCWireSnapshotDocumentError.invalidDocument
+        }
         try self.init(
             schemaVersion: schemaVersion, hostState: hostState, localID: localID,
             authenticatedConnectionCount: authenticatedConnectionCount,
+            directAccessStatus: directAccessStatus,
             sessionAvailability: sessionAvailability,
             sessionUnavailableReason: sessionUnavailableReason,
             registrationStatus: registrationStatus, recoveryEpoch: recoveryEpoch,
@@ -527,7 +534,8 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
 
     private init(
         schemaVersion: Int, hostState: String, localID: String,
-        authenticatedConnectionCount: UInt64, sessionAvailability: HostSessionAvailability,
+        authenticatedConnectionCount: UInt64, directAccessStatus: String?,
+        sessionAvailability: HostSessionAvailability,
         sessionUnavailableReason: HostSessionUnavailableReason?, registrationStatus: String,
         recoveryEpoch: UInt64, recoveryStatus: HostRecoveryStatus,
         pendingApproval: HostAgentXPCWirePendingApproval?,
@@ -560,6 +568,13 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
         case (.available, nil), (.limited, .sessionUnavailable): sessionAvailabilityIsValid = true
         default: sessionAvailabilityIsValid = false
         }
+        if let directAccessStatus {
+            let fields = directAccessStatus.split(separator: ":", omittingEmptySubsequences: false)
+            guard fields.count == 2,
+                ["listening", "portInUse", "bindFailed"].contains(String(fields[0])),
+                let port = UInt16(fields[1]), port > 0
+            else { throw HostAgentXPCWireSnapshotDocumentError.invalidDocument }
+        }
         guard schemaVersion == 8,
             HostAgentXPCWireSnapshotContract.allowedHostStates.contains(hostState),
             hostState.utf8.count <= HostAgentXPCWireSnapshotContract.maximumStatusBytes,
@@ -575,6 +590,7 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
         self.schemaVersion = schemaVersion
         self.hostState = hostState
         self.localID = localID
+        self.directAccessStatus = directAccessStatus
         self.authenticatedConnectionCount = authenticatedConnectionCount
         self.sessionAvailability = sessionAvailability
         self.sessionUnavailableReason = sessionUnavailableReason
@@ -590,7 +606,7 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
     }
 
     fileprivate var document: [String: Any] {
-        [
+        var payload: [String: Any] = [
             "schemaVersion": schemaVersion, "hostState": hostState, "localId": localID,
             "authenticatedConnectionCount": authenticatedConnectionCount,
             "sessionAvailability": sessionAvailability.rawValue,
@@ -603,6 +619,8 @@ package struct HostAgentXPCWireSnapshotPayload: Equatable, Sendable {
             "passwordPolicy": passwordPolicy.document, "lastError": lastError ?? NSNull(),
             "observedAt": observedAt,
         ]
+        payload["directAccessStatus"] = directAccessStatus
+        return payload
     }
 }
 

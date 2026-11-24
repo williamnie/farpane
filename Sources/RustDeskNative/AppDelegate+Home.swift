@@ -207,6 +207,16 @@ extension AppDelegate {
         let usesLegacyHost =
             hostAgentBackgroundRegistrationStatus == .notRegistered
             && hostAgentBackgroundFlow == nil
+        let directAccessStatus: String?
+        if usesLegacyHost {
+            directAccessStatus = hostSnapshot?.directAccessStatus
+        } else if case .available(let available) = coherentHostAgentBackgroundActivationView?.projection?.phase {
+            directAccessStatus = available.payload.directAccessStatus
+        } else {
+            directAccessStatus = nil
+        }
+        homeView.refreshDirectAccessStatus(
+            directAccessStatus, hostRunning: usesLegacyHost ? hostRuntimeActive : backgroundSnapshot.isAvailable)
         let legacyHostIsReady =
             hostRuntimeActive && hostSnapshot?.hostState == "ready"
             && hostSnapshot?.registrationStatus == "ready"

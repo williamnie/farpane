@@ -23,6 +23,7 @@ public struct HostCoreSnapshot: Sendable {
     public let hostInstanceId: String
     public let hostState: String
     public let localId: String
+    public let directAccessStatus: String?
     public let authenticatedConnectionCount: UInt64
     public let sessionAvailability: HostSessionAvailability
     public let sessionUnavailableReason: HostSessionUnavailableReason?
@@ -153,6 +154,7 @@ public struct HostCoreSnapshot: Sendable {
         hostInstanceId = hostInstanceID
         self.hostState = hostState
         localId = localID
+        self.directAccessStatus = json["directAccessStatus"] as? String
         self.authenticatedConnectionCount = authenticatedConnectionCount
         self.sessionAvailability = sessionAvailability
         self.sessionUnavailableReason = sessionUnavailableReason

@@ -34,6 +34,11 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     var onReadLocalClipboardText: (() -> String?)?
     var onWriteLocalClipboardText: ((String) -> Bool)?
 
+    let hostDirectAccessSwitch = NSSwitch()
+    let hostDirectAccessPort = NSTextField()
+    let hostDirectAccessStatus = NSTextField(labelWithString: "")
+    var hostDirectAccessHasInputError = false
+
     let serverButton = NSButton()
     let serverStatusDot = NSView()
     let peerField = NSTextField()

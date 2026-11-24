@@ -119,8 +119,13 @@ public struct HostAgentBootstrapConfiguration: Equatable, Sendable {
 
     /// These namespace components are product-owned constants, never values
     /// accepted from disk or an environment variable.
-    public let hostConfigAppName = "FarPaneHost"
-    public let hostConfigOrganization = "io.rustdesknative"
+    public enum HostConfigNamespace {
+        public static let appName = "FarPaneHost"
+        public static let organization = "io.rustdesknative"
+    }
+
+    public var hostConfigAppName: String { HostConfigNamespace.appName }
+    public var hostConfigOrganization: String { HostConfigNamespace.organization }
 
     private init(
         schemaVersion: Int, configRevision: UInt64, agentBuildID: String, rendezvousServer: String,

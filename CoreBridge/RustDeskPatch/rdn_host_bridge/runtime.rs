@@ -59,6 +59,10 @@ impl HostRuntime {
                 };
                 runtime.block_on(async move {
                     let server = crate::server::new();
+                    #[cfg(target_os = "macos")]
+                    hbb_common::tokio::spawn(
+                        crate::RendezvousMediator::run_native_host_direct_server(server.clone()),
+                    );
                     let mut reconnect_backoff = HostRuntimeReconnectBackoff::default();
                     while !thread_stop.load(Ordering::Acquire) {
                         crate::RendezvousMediator::prepare_native_host_runtime();
@@ -209,6 +213,10 @@ impl RdnHost {
         map.insert("hostInstanceId".into(), json!(self.instance_id));
         map.insert("hostState".into(), json!(state_name(self.state)));
         map.insert("localId".into(), json!(self.local_id));
+        #[cfg(target_os = "macos")]
+        if let Some(status) = crate::rendezvous_mediator::native_direct_status() {
+            map.insert("directAccessStatus".into(), json!(status));
+        }
         map.insert(
             "authenticatedConnectionCount".into(),
             json!(crate::server::native_host_authenticated_connection_count()),
