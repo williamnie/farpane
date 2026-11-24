@@ -30,6 +30,7 @@ final class ViewerChromeView: NSView {
     private var controlTop: NSLayoutConstraint!
     private var collapsedVideoTop: NSLayoutConstraint!
     private var floatingVideoTop: NSLayoutConstraint!
+    private var expandedPanelMargins: [NSLayoutConstraint] = []
     private let controlsPanel = NSVisualEffectView()
     private let hudPanel = ViewerHUDPanel()
     private let hudLabel = NSTextField(labelWithString: "正在等待视频…")
@@ -481,11 +482,14 @@ final class ViewerChromeView: NSView {
             controlCenter, controlTop, collapsedVideoTop,
             controlsPanel.centerXAnchor.constraint(equalTo: centerXAnchor),
             controlsPanel.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor, constant: 8),
+        ])
+        // 收起的面板仍有固有宽度，仅在显示时用它约束窗口边距。
+        expandedPanelMargins = [
             controlsPanel.leadingAnchor.constraint(
                 greaterThanOrEqualTo: leadingAnchor, constant: 16),
             controlsPanel.trailingAnchor.constraint(
                 lessThanOrEqualTo: trailingAnchor, constant: -16),
-        ])
+        ]
         controlsPanel.isHidden = true
         hudPanel.isHidden = !hudVisible
         updateHUDButtonTitle()
@@ -513,6 +517,11 @@ final class ViewerChromeView: NSView {
         }
         controlsExpanded = expanded
         collapsedControl.isHidden = expanded
+        if expanded {
+            NSLayoutConstraint.activate(expandedPanelMargins)
+        } else {
+            NSLayoutConstraint.deactivate(expandedPanelMargins)
+        }
         controlsPanel.isHidden = !expanded
         onControlOverlayVisibilityChanged?(expanded)
         layoutSubtreeIfNeeded()

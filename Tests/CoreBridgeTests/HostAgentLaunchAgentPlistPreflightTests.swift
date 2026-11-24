@@ -182,9 +182,10 @@ final class HostAgentLaunchAgentPlistPreflightTests: XCTestCase {
         var propertyList = validPropertyList()
         propertyList[key] = value
 
-        XCTAssertThrowsError(
-            try HostAgentLaunchAgentPlistPreflight.validate(data(for: propertyList))
-        ) { error in
+        // 二进制 plist 能保留参数中的 NUL，让校验器收到完整的测试输入。
+        let payload = try PropertyListSerialization.data(
+            fromPropertyList: propertyList, format: .binary, options: 0)
+        XCTAssertThrowsError(try HostAgentLaunchAgentPlistPreflight.validate(payload)) { error in
             XCTAssertEqual(error as? HostAgentLaunchAgentPlistPreflightError, expectedError)
         }
     }

@@ -129,6 +129,15 @@ final class ViewerWindowSizingTests: XCTestCase {
         try assertVideoFits(chrome, window: window, aspect: 32.0 / 9)
     }
 
+    @MainActor func testCollapsedControlsAllowNarrowPortraitWindow() {
+        let (chrome, window) = makeViewer()
+        defer { window.contentView = nil }
+        window.minSize = .zero
+        window.setContentSize(NSSize(width: 320, height: 600))
+        chrome.layoutSubtreeIfNeeded()
+        XCTAssertEqual(chrome.bounds.width, 320, accuracy: 1)
+    }
+
     @MainActor func testFullscreenTransitionDefersAndCoalescesResolutionChanges() async throws {
         let (chrome, window) = makeViewer()
         defer { window.contentView = nil }
