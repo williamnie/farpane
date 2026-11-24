@@ -215,7 +215,8 @@ extension AppDelegate {
         } else {
             directAccessStatus = nil
         }
-        homeView.refreshDirectAccessStatus(directAccessStatus)
+        homeView.refreshDirectAccessStatus(
+            directAccessStatus, hostRunning: usesLegacyHost ? hostRuntimeActive : backgroundSnapshot.isAvailable)
         let legacyHostIsReady =
             hostRuntimeActive && hostSnapshot?.hostState == "ready"
             && hostSnapshot?.registrationStatus == "ready"

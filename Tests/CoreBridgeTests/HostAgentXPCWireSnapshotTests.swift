@@ -49,6 +49,37 @@ final class HostAgentXPCWireSnapshotTests: XCTestCase {
         XCTAssertEqual(decoded.evaluate(for: staleIdentityRequest), .invalidResponse)
     }
 
+    func testDirectAccessStatusRoundTripsAndAbsentFieldIsAccepted() throws {
+        let document = try responseDocument()
+        let payload = try XCTUnwrap(document["payload"] as? [String: Any])
+        let snapshot = try XCTUnwrap(payload["snapshot"] as? [String: Any])
+        let missing = try HostAgentXPCWireSnapshotResponse.decode(data(document))
+        XCTAssertNil(missing.snapshot.directAccessStatus)
+
+        for status in ["listening:21118", "portInUse:1", "bindFailed:65535"] {
+            let updated = try replacingPayload(
+                document, ["snapshot": merging(snapshot, ["directAccessStatus": status])])
+            let response = try HostAgentXPCWireSnapshotResponse.decode(data(updated))
+            XCTAssertEqual(response.snapshot.directAccessStatus, status)
+            XCTAssertEqual(try HostAgentXPCWireSnapshotResponse.decode(response.encoded()), response)
+        }
+    }
+
+    func testDirectAccessStatusRejectsMalformedValues() throws {
+        let document = try responseDocument()
+        let payload = try XCTUnwrap(document["payload"] as? [String: Any])
+        let snapshot = try XCTUnwrap(payload["snapshot"] as? [String: Any])
+        let malformed: [Any] = [
+            "unknown:21118", "listening", "listening:", "listening:0",
+            "listening:65536", "listening:-1", "listening:21118:1", 21118, NSNull(),
+        ]
+        for status in malformed {
+            let updated = try replacingPayload(
+                document, ["snapshot": merging(snapshot, ["directAccessStatus": status])])
+            XCTAssertThrowsError(try HostAgentXPCWireSnapshotResponse.decode(data(updated)))
+        }
+    }
+
     func testWireProjectionNeverContainsOneShotPasswordOrRawSnapshot() throws {
         let secret = "must-never-cross-xpc"
         let state = HostAgentSnapshotState()
