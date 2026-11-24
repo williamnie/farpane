@@ -37,6 +37,7 @@ final class HomeView: NSView, NSTextFieldDelegate, NSSearchFieldDelegate {
     let hostDirectAccessSwitch = NSSwitch()
     let hostDirectAccessPort = NSTextField()
     let hostDirectAccessStatus = NSTextField(labelWithString: "")
+    var hostDirectAccessHasInputError = false
 
     let serverButton = NSButton()
     let serverStatusDot = NSView()

@@ -589,10 +589,10 @@ index 2e68cf5..53d464c 100644
 +    }
 +}
 diff --git a/src/rendezvous_mediator.rs b/src/rendezvous_mediator.rs
-index 4f5c8fe..37412c0 100644
+index 4f5c8fe..12051da 100644
 --- a/src/rendezvous_mediator.rs
 +++ b/src/rendezvous_mediator.rs
-@@ -107,6 +107,24 @@ pub struct RendezvousMediator {
+@@ -107,6 +107,31 @@ pub struct RendezvousMediator {
  }
 
  impl RendezvousMediator {
@@ -605,6 +605,13 @@ index 4f5c8fe..37412c0 100644
 +
 +    #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
 +    pub(crate) async fn run_native_host_direct_server(server: ServerPtr) {
++        struct ResetStatus;
++        impl Drop for ResetStatus {
++            fn drop(&mut self) {
++                set_native_direct_status(None);
++            }
++        }
++        let _reset_status = ResetStatus;
 +        direct_server(server, true).await;
 +    }
 +
@@ -617,7 +624,7 @@ index 4f5c8fe..37412c0 100644
      pub fn restart() {
          SHOULD_EXIT.store(true, Ordering::SeqCst);
          MANUAL_RESTARTED.store(true, Ordering::SeqCst);
-@@ -132,7 +150,7 @@ impl RendezvousMediator {
+@@ -132,7 +157,7 @@ impl RendezvousMediator {
          }
          let server_cloned = server.clone();
          tokio::spawn(async move {
@@ -626,58 +633,90 @@ index 4f5c8fe..37412c0 100644
          });
          #[cfg(target_os = "android")]
          let start_lan_listening = true;
-@@ -844,17 +862,74 @@ fn get_direct_port() -> i32 {
+@@ -844,31 +869,144 @@ fn get_direct_port() -> i32 {
      port
  }
 
 -async fn direct_server(server: ServerPtr) {
++static NATIVE_DIRECT_STATUS: std::sync::Mutex<Option<(&'static str, u16)>> =
++    std::sync::Mutex::new(None);
++
++fn set_native_direct_status(status: Option<(&'static str, u16)>) {
++    *NATIVE_DIRECT_STATUS.lock().unwrap() = status;
++}
++
 +#[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
-+fn native_direct_access_policy() -> Option<(bool, i32)> {
++pub(crate) fn native_direct_status() -> Option<String> {
++    NATIVE_DIRECT_STATUS
++        .lock()
++        .unwrap()
++        .map(|(status, port)| format!("{status}:{port}"))
++}
++
++#[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
++fn native_direct_access_policy(path: &std::path::Path) -> (bool, i32) {
 +    use hbb_common::libc;
 +    use std::{fs::OpenOptions, io::Read, os::unix::fs::OpenOptionsExt};
 +
 +    #[derive(serde_derive::Deserialize)]
 +    struct Settings {
 +        enabled: bool,
-+        port: u16,
++        port: Option<u16>,
 +    }
 +
-+    let path = config::Config2::file().with_file_name("direct-access.json");
-+    let file = match OpenOptions::new()
++    let Ok(file) = OpenOptions::new()
 +        .read(true)
 +        .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
 +        .open(path)
-+    {
-+        Ok(file) => file,
-+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return None,
-+        Err(_) => return Some((false, 0)),
++    else {
++        return (false, 0);
 +    };
 +    if !file.metadata().is_ok_and(|metadata| metadata.is_file()) {
-+        return Some((false, 0));
++        return (false, 0);
 +    }
 +    let mut bytes = Vec::new();
 +    if file.take(257).read_to_end(&mut bytes).is_err() || bytes.len() > 256 {
-+        return Some((false, 0));
++        return (false, 0);
 +    }
 +    match serde_json::from_slice::<Settings>(&bytes) {
-+        Ok(settings) if settings.port > 0 => Some((settings.enabled, i32::from(settings.port))),
-+        _ => Some((false, 0)),
++        Ok(Settings { enabled: true, port: Some(port) }) if port > 0 => (true, i32::from(port)),
++        _ => (false, 0),
 +    }
 +}
 +
-+async fn bind_native_host_direct_server(port: i32) -> ResultType<tokio::net::TcpListener> {
-+    let address = Config::get_option("direct-access-bind");
-+    let ip = if address.is_empty() {
-+        std::net::IpAddr::V4(std::net::Ipv4Addr::LOCALHOST)
-+    } else {
-+        address.parse::<std::net::IpAddr>()?
-+    };
-+    Ok(tokio::net::TcpListener::bind(SocketAddr::new(ip, u16::try_from(port)?)).await?)
++#[cfg(all(test, feature = "rdn-native-host", target_os = "macos"))]
++#[test]
++fn native_direct_access_policy_rejects_unsafe_or_incomplete_settings() {
++    use std::{fs, os::unix::fs::symlink};
++
++    let directory = std::env::temp_dir().join(Uuid::new_v4().to_string());
++    fs::create_dir(&directory).unwrap();
++    let path = directory.join("settings.json");
++    assert_eq!(native_direct_access_policy(&path), (false, 0));
++    for malformed in [
++        r#"{"enabled": true}"#,
++        r#"{"port": 21118}"#,
++        r#"{"enabled": true, "port": 0}"#,
++        r#"{"enabled": false}"#,
++    ] {
++        fs::write(&path, malformed).unwrap();
++        assert_eq!(native_direct_access_policy(&path), (false, 0));
++    }
++    let valid = r#"{"enabled": true, "port": 21118}"#;
++    fs::write(&path, format!("{valid}{:256}", "")).unwrap();
++    assert_eq!(native_direct_access_policy(&path), (false, 0));
++    fs::write(&path, valid).unwrap();
++    assert_eq!(native_direct_access_policy(&path), (true, 21118));
++    let link = directory.join("link.json");
++    symlink(&path, &link).unwrap();
++    assert_eq!(native_direct_access_policy(&link), (false, 0));
++    fs::remove_dir_all(directory).unwrap();
 +}
 +
 +async fn direct_server(server: ServerPtr, native_host: bool) {
      let mut listener = None;
      let mut port = 0;
++    let mut last_failure = None;
      loop {
 -        let disabled = !option2bool(
 -            OPTION_DIRECT_SERVER,
@@ -685,7 +724,9 @@ index 4f5c8fe..37412c0 100644
 -        ) || option2bool("stop-service", &Config::get_option("stop-service"));
 +        #[cfg(all(feature = "rdn-native-host", target_os = "macos"))]
 +        let native_policy = if native_host {
-+            native_direct_access_policy()
++            Some(native_direct_access_policy(
++                &config::Config2::file().with_file_name("direct-access.json"),
++            ))
 +        } else {
 +            None
 +        };
@@ -695,31 +736,62 @@ index 4f5c8fe..37412c0 100644
 +            (Config::get_bool_option(OPTION_DIRECT_SERVER), get_direct_port())
 +        });
 +        let disabled = !enabled || Config::get_bool_option("stop-service");
++        if native_host && disabled {
++            last_failure = None;
++            set_native_direct_status(None);
++        }
          if !disabled && listener.is_none() {
 -            port = get_direct_port();
 -            match hbb_common::tcp::listen_any(port as _).await {
 +            port = requested_port;
 +            let result = if native_host {
-+                bind_native_host_direct_server(port).await
++                // RustDesk direct sessions do not perform the secure handshake.
++                tokio::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, port as u16))
++                    .await
++                    .map_err(|error| hbb_common::anyhow::anyhow!(error))
 +            } else {
 +                hbb_common::tcp::listen_any(port as _).await
 +            };
 +            match result {
                  Ok(l) => {
                      listener = Some(l);
-                     log::info!(
-@@ -869,6 +944,10 @@ async fn direct_server(server: ServerPtr) {
-                         port,
-                         err
-                     );
 +                    if native_host {
++                        last_failure = None;
++                        set_native_direct_status(Some(("listening", port as u16)));
++                    }
+                     log::info!(
+                         "Direct server listening on: {:?}",
+                         listener.as_ref().map(|l| l.local_addr())
+                     );
+                 }
+                 Err(err) => {
+-                    // to-do: pass to ui
+-                    log::error!(
+-                        "Failed to start direct server on port: {}, error: {}",
+-                        port,
+-                        err
+-                    );
++                    if native_host {
++                        let kind = err.downcast_ref::<std::io::Error>().map(|error| error.kind());
++                        let failure = (port, kind);
++                        if last_failure != Some(failure) {
++                            log::error!("Failed to start direct server on port {port}: {err}");
++                            last_failure = Some(failure);
++                        }
++                        let status = if kind == Some(std::io::ErrorKind::AddrInUse) {
++                            "portInUse"
++                        } else {
++                            "bindFailed"
++                        };
++                        set_native_direct_status(Some((status, port as u16)));
 +                        sleep(1.).await;
 +                        continue;
 +                    }
++                    log::error!("Failed to start direct server on port: {}, error: {}", port, err);
                      loop {
                          if port != get_direct_port() {
                              break;
-@@ -879,7 +958,7 @@ async fn direct_server(server: ServerPtr) {
+@@ -879,9 +1017,12 @@ async fn direct_server(server: ServerPtr) {
              }
          }
          if let Some(l) = listener.as_mut() {
@@ -727,7 +799,12 @@ index 4f5c8fe..37412c0 100644
 +            if disabled || port != requested_port {
                  log::info!("Exit direct access listen");
                  listener = None;
++                if native_host {
++                    set_native_direct_status(None);
++                }
                  continue;
+             }
+             if let Ok(Ok((stream, addr))) = hbb_common::timeout(1000, l.accept()).await {
 diff --git a/src/server.rs b/src/server.rs
 index 89a17a9..b0b23d5 100644
 --- a/src/server.rs

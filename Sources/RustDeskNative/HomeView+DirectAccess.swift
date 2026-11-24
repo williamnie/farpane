@@ -1,12 +1,14 @@
 import AppKit
+import ConnectionCatalog
 
 private struct HostDirectAccessSettings: Codable {
     let enabled: Bool
     let port: UInt16?
 
     static var url: URL {
-        FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Preferences/io.rustdesknative.FarPaneHost")
+        typealias Namespace = HostAgentBootstrapConfiguration.HostConfigNamespace
+        return FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Preferences/\(Namespace.organization).\(Namespace.appName)")
             .appendingPathComponent("direct-access.json")
     }
 
@@ -28,6 +30,18 @@ private struct HostDirectAccessSettings: Codable {
 }
 
 extension HomeView {
+    func refreshDirectAccessStatus(_ status: String?) {
+        guard !hostDirectAccessHasInputError, hostDirectAccessSwitch.state == .on,
+            let port = HostDirectAccessSettings.load()?.port
+        else { return }
+        switch status {
+        case "listening:\(port)": hostDirectAccessStatus.stringValue = "正在监听"
+        case "portInUse:\(port)": hostDirectAccessStatus.stringValue = "端口已被占用"
+        case "bindFailed:\(port)": hostDirectAccessStatus.stringValue = "无法监听端口"
+        default: hostDirectAccessStatus.stringValue = "等待 Host 监听"
+        }
+    }
+
     func makeDirectAccessSettings() -> NSView {
         let settings = HostDirectAccessSettings.load()
         hostDirectAccessSwitch.state = settings?.enabled == true ? .on : .off
@@ -59,12 +73,14 @@ extension HomeView {
     }
 
     private func saveDirectAccess(switchChanged: Bool) {
+        hostDirectAccessHasInputError = false
         let enabled = hostDirectAccessSwitch.state == .on
         let portText = hostDirectAccessPort.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
         let port: UInt16?
         if enabled {
             guard let requestedPort = UInt16(portText), requestedPort > 0 else {
                 if switchChanged { hostDirectAccessSwitch.state = .off }
+                hostDirectAccessHasInputError = true
                 hostDirectAccessStatus.stringValue = "请输入 1 至 65535 的端口。"
                 window?.makeFirstResponder(hostDirectAccessPort)
                 return
@@ -77,8 +93,9 @@ extension HomeView {
         do {
             try HostDirectAccessSettings(enabled: enabled, port: port).save()
             if enabled { hostDirectAccessPort.stringValue = port.map(String.init) ?? "" }
-            hostDirectAccessStatus.stringValue = "设置已保存。"
+            hostDirectAccessStatus.stringValue = enabled ? "等待 Host 监听" : "已关闭直连"
         } catch {
+            hostDirectAccessHasInputError = true
             if switchChanged { hostDirectAccessSwitch.state = enabled ? .off : .on }
             hostDirectAccessStatus.stringValue = "无法保存直连设置。"
         }

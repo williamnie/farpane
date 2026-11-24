@@ -50,7 +50,9 @@ extension AppDelegate {
                 let created = try HostControlClient(libraryURL: coreURL, eventQueue: .main) {
                     [weak self] event in self?.handleHostCoreEvent(event)
                 }
-                try created.setConfigRoot(appName: "FarPaneHost", org: "io.rustdesknative")
+                try created.setConfigRoot(
+                    appName: HostAgentBootstrapConfiguration.HostConfigNamespace.appName,
+                    org: HostAgentBootstrapConfiguration.HostConfigNamespace.organization)
                 hostClient = created
                 client = created
             }
